@@ -1,0 +1,11 @@
+{
+  "name": "linkedin-archive",
+  "version": "1.0.0",
+  "description": "Convert LinkedIn posts and comments to HTML and RSS",
+  "type": "module",
+  "scripts": {
+    "build": "node publish.js"
+  },
+  "author": "",
+  "license": "MIT"
+}

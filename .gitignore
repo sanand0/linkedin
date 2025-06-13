@@ -1,0 +1,10 @@
+# Generated HTML files and RSS feed
+*.html
+feed.xml
+
+# Node modules (if any)
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
