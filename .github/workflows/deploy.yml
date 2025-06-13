@@ -27,10 +27,14 @@ jobs:
       # Checkout the repository
       - uses: actions/checkout@v4
 
-      # Install uv
-      - uses: astral-sh/setup-uv@v5
-      # Run a Python script
-      - run: uv run publish.py
+      # Install node
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://npm.pkg.github.com/
+      # Install and build via package.json
+      - run: npm install
+      - run: npm run build
 
       # Upload a specific page to GitHub Pages. Defaults to _site
       - uses: actions/upload-pages-artifact@v3

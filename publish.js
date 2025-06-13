@@ -1,56 +1,24 @@
 import { readFileSync, writeFileSync, existsSync } from "fs";
+import { parse } from "csv-parse/sync";
 
-const parseCSV = (content) => {
-  const result = [];
-  const lines = content.split("\n");
-  const headers = lines[0].split(",");
+const parseCSV = (file) => {
+  if (!existsSync(file)) return [];
 
-  let currentRecord = [];
-  let currentField = "";
-  let inQuotes = false;
-  let recordStarted = false;
+  const data = parse(readFileSync(file, "utf8"), {
+    columns: true,
+    escape: '"',
+    quote: '"',
+    relax_quotes: true,
+    skip_empty_lines: true,
+    relax_column_count: true,
+  });
 
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i];
-    if (!line.trim()) continue;
-
-    for (let j = 0; j < line.length; j++) {
-      const char = line[j];
-      const nextChar = line[j + 1];
-
-      if (char === '"' && !inQuotes) {
-        inQuotes = true;
-        recordStarted = true;
-      } else if (char === '"' && inQuotes) {
-        if (nextChar === '"') {
-          currentField += '"';
-          j++; // Skip next quote
-        } else {
-          inQuotes = false;
-        }
-      } else if (char === "," && !inQuotes) {
-        currentRecord.push(currentField);
-        currentField = "";
-      } else {
-        currentField += char;
-        if (!recordStarted && char !== " ") recordStarted = true;
-      }
-    }
-
-    if (!inQuotes && recordStarted) {
-      currentRecord.push(currentField);
-      if (currentRecord.length === headers.length) {
-        result.push(headers.reduce((obj, header, idx) => ({ ...obj, [header]: currentRecord[idx] || "" }), {}));
-        currentRecord = [];
-      }
-      currentField = "";
-      recordStarted = false;
-    } else if (inQuotes) {
-      currentField += "\n";
-    }
-  }
-
-  return result;
+  // Post-process to clean up extra quotes in ShareCommentary and Message fields
+  return data.map((row) => ({
+    ...row,
+    ShareCommentary: row.ShareCommentary?.replace(/^"+|"+$/gm, "") || row.ShareCommentary,
+    Message: row.Message?.replace(/^"+|"+$/g, "").replace(/\\"/g, '"') || row.Message,
+  }));
 };
 
 const formatDate = (dateStr) =>
@@ -62,166 +30,134 @@ const formatDate = (dateStr) =>
     minute: "2-digit",
   });
 
-const getMonthKey = (dateStr) => {
-  const date = new Date(dateStr);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-};
-
-const generateHTML = (title, content) => `<!DOCTYPE html>
+const generateHTML = (title, content, isIndex = false) => `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${title}</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <style>a:not([href^='http']) code { color: var(--bs-danger); }</style>
 </head>
-<body>
-  <div class="container py-4">
-    ${content}
-  </div>
+<body class="bg-light">
+  <header class="text-bg-warning py-5 mb-4">
+    <div class="container text-center">
+      <h1 class="display-4 fw-bold"><a href="index.html" class="text-decoration-none text-dark">Anand's LinkedIn Archive</a></h1>
+      <p class="lead mb-0"><a class="link-dark link-offset-3" href="https://linkedin.com/in/sanand0">LinkedIn Profile</a></p>
+    </div>
+  </header>
+  <div class="container py-4" style="max-width: 40rem;">${content}</div>
+  ${isIndex ? `<footer class="text-center mb-4"><a href="feed.xml" class="btn btn-outline-secondary btn-sm"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-rss-fill mb-1" viewBox="0 0 16 16"><path d="M2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2zm1.5 2.5c5.523 0 10 4.477 10 10a1 1 0 1 1-2 0 8 8 0 0 0-8-8 1 1 0 0 1 0-2zm0 4a6 6 0 0 1 6 6 1 1 0 1 1-2 0 4 4 0 0 0-4-4 1 1 0 0 1 0-2zm.5 7a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg> Subscribe to RSS</a></footer>` : ""}
 </body>
 </html>`;
 
-const processData = () => {
-  const shares = existsSync("Shares.csv") ? parseCSV(readFileSync("Shares.csv", "utf8")) : [];
-  const comments = existsSync("Comments.csv") ? parseCSV(readFileSync("Comments.csv", "utf8")) : [];
+const allPosts = [
+  ...parseCSV("Shares.csv").map((s) => ({ ...s, type: "share", date: s.Date })),
+  ...parseCSV("Comments.csv").map((c) => ({ ...c, type: "comment", date: c.Date })),
+]
+  .filter((post) => post.date && !isNaN(new Date(post.date)))
+  .sort((a, b) => new Date(b.date) - new Date(a.date));
 
-  const allPosts = [
-    ...shares.map((s) => ({ ...s, type: "share", date: s.Date })),
-    ...comments.map((c) => ({ ...c, type: "comment", date: c.Date })),
-  ]
-    .filter((post) => post.date && !isNaN(new Date(post.date)))
-    .sort((a, b) => new Date(b.date) - new Date(a.date));
+// Group by year, split to months if >40 posts
+const yearGroups = allPosts.reduce((groups, post) => {
+  const year = new Date(post.date).getFullYear().toString();
+  (groups[year] ||= []).push(post);
+  return groups;
+}, {});
 
-  const monthGroups = allPosts.reduce((groups, post) => {
-    const monthKey = getMonthKey(post.date);
-    if (!groups[monthKey]) groups[monthKey] = [];
-    groups[monthKey].push(post);
-    return groups;
-  }, {});
+const finalGroups = {};
+Object.entries(yearGroups).forEach(([year, posts]) => {
+  if (posts.length < 40) finalGroups[year] = posts;
+  else {
+    posts.forEach((post) => {
+      const monthKey = `${new Date(post.date).getFullYear()}-${String(new Date(post.date).getMonth() + 1).padStart(2, "0")}`;
+      (finalGroups[monthKey] ||= []).push(post);
+    });
+  }
+});
 
-  // Generate monthly HTML files
-  Object.entries(monthGroups).forEach(([monthKey, posts]) => {
-    const [year, month] = monthKey.split("-");
-    const monthName = new Date(year, month - 1).toLocaleDateString("en-US", { year: "numeric", month: "long" });
+// Generate group pages
+Object.entries(finalGroups).forEach(([groupKey, posts]) => {
+  const isYear = groupKey.length === 4;
+  const title = isYear
+    ? groupKey
+    : new Date(groupKey + "-01").toLocaleDateString("en-US", { year: "numeric", month: "long" });
 
-    const postsHTML = posts
-      .map((post) => {
-        if (post.type === "share") {
-          return `
-          <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-              <span class="badge bg-primary">Share</span>
-              <small class="text-muted">${formatDate(post.date)}</small>
-            </div>
-            <div class="card-body">
-              <div class="post-content">${post.ShareCommentary?.replace(/\n/g, "<br>") || ""}</div>
-              ${post.SharedUrl ? `<div class="mt-3"><a href="${post.SharedUrl}" class="btn btn-outline-secondary btn-sm" target="_blank">Shared Link</a></div>` : ""}
-              <div class="mt-3">
-                <a href="${post.ShareLink}" class="btn btn-sm btn-primary" target="_blank">View on LinkedIn</a>
-              </div>
-            </div>
-          </div>`;
-        } else {
-          return `
-          <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-              <span class="badge bg-success">Comment</span>
-              <small class="text-muted">${formatDate(post.date)}</small>
-            </div>
-            <div class="card-body">
-              <div class="post-content">${post.Message?.replace(/\n/g, "<br>") || ""}</div>
-              <div class="mt-3">
-                <a href="${post.Link}" class="btn btn-sm btn-success" target="_blank">View on LinkedIn</a>
-              </div>
-            </div>
-          </div>`;
-        }
-      })
-      .join("");
-
-    const monthHTML = `
-      <nav class="mb-4">
-        <a href="index.html" class="btn btn-outline-secondary">&larr; Back to Index</a>
-      </nav>
-      <h1 class="mb-4">${monthName}</h1>
-      ${postsHTML}`;
-
-    writeFileSync(`${monthKey}.html`, generateHTML(`${monthName} - LinkedIn Archive`, monthHTML));
-  });
-
-  // Generate index.html
-  const monthLinks = Object.keys(monthGroups)
-    .sort((a, b) => b.localeCompare(a))
-    .map((monthKey) => {
-      const [year, month] = monthKey.split("-");
-      const monthName = new Date(year, month - 1).toLocaleDateString("en-US", { year: "numeric", month: "long" });
-      const postCount = monthGroups[monthKey].length;
-      const shareCount = monthGroups[monthKey].filter((p) => p.type === "share").length;
-      const commentCount = monthGroups[monthKey].filter((p) => p.type === "comment").length;
-
-      return `
-        <div class="col-md-6 col-lg-4 mb-3">
-          <div class="card h-100">
-            <div class="card-body">
-              <h5 class="card-title">${monthName}</h5>
-              <p class="card-text">
-                <span class="badge bg-primary me-2">${shareCount} shares</span>
-                <span class="badge bg-success">${commentCount} comments</span>
-              </p>
-              <a href="${monthKey}.html" class="btn btn-primary">View Posts</a>
-            </div>
-          </div>
-        </div>`;
-    })
-    .join("");
-
-  const indexHTML = `
-    <div class="text-center mb-5">
-      <h1 class="display-4">LinkedIn Archive</h1>
-      <p class="lead">My LinkedIn posts and comments, organized by month</p>
-    </div>
-    <div class="row g-3">
-      ${monthLinks}
-    </div>`;
-
-  writeFileSync("index.html", generateHTML("LinkedIn Archive", indexHTML));
-
-  // Generate RSS feed
-  const rssItems = allPosts
-    .slice(0, 20)
+  const postsHTML = posts
     .map((post) => {
-      const title = post.type === "share" ? "LinkedIn Share" : "LinkedIn Comment";
-      const content = post.type === "share" ? post.ShareCommentary : post.Message;
-      const link = post.type === "share" ? post.ShareLink : post.Link;
-      const pubDate = new Date(post.date).toUTCString();
+      const cleanContent = (content) => content?.replace(/\n/g, "<br>").trim() || "";
+      const isShare = post.type === "share";
+      const link = isShare ? post.ShareLink : post.Link;
+      const content = cleanContent(isShare ? post.ShareCommentary : post.Message);
 
-      return `
-    <item>
-      <title>${title}</title>
-      <link>${link}</link>
-      <description><![CDATA[${content?.replace(/\n/g, "<br>") || ""}]]></description>
-      <pubDate>${pubDate}</pubDate>
-      <guid>${link}</guid>
-    </item>`;
+      return `<div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <div>
+            <a href="${link}" target="_blank" class="text-decoration-none">
+              <span class="badge ${isShare ? "bg-primary" : "bg-success"} me-2">${isShare ? "Share" : "Comment"}</span>
+              <small class="text-muted">${formatDate(post.date)}</small>
+            </a>
+          </div>
+          <a href="${link}" class="btn btn-sm ${isShare ? "btn-primary" : "btn-success"}" target="_blank">View on LinkedIn</a>
+        </div>
+        <div class="card-body">
+          <div class="post-content">${content}</div>
+          ${isShare && post.SharedUrl ? `<div class="mt-3"><a href="${post.SharedUrl}" class="btn btn-outline-secondary btn-sm" target="_blank">Shared Link</a></div>` : ""}
+        </div>
+      </div>`;
     })
     .join("");
 
-  const rss = `<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0">
-  <channel>
-    <title>LinkedIn Archive</title>
-    <description>My LinkedIn posts and comments</description>
-    <link>.</link>
-    <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
-    ${rssItems}
-  </channel>
-</rss>`;
+  writeFileSync(
+    `${groupKey}.html`,
+    generateHTML(`${title} - Anand's LinkedIn Archive`, `<h1 class="mb-4">${title}</h1>${postsHTML}`),
+  );
+});
 
-  writeFileSync("feed.xml", rss);
+// Generate index
+const indexHTML = Object.keys(finalGroups)
+  .sort((a, b) => b.localeCompare(a))
+  .map((groupKey) => {
+    const isYear = groupKey.length === 4;
+    const title = isYear
+      ? groupKey
+      : new Date(groupKey + "-01").toLocaleDateString("en-US", { year: "numeric", month: "long" });
+    const posts = finalGroups[groupKey];
+    const shareCount = posts.filter((p) => p.type === "share").length;
+    const commentCount = posts.filter((p) => p.type === "comment").length;
 
-  console.log(`Generated ${Object.keys(monthGroups).length} monthly pages and RSS feed`);
-};
+    return `<a href="${groupKey}.html" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+      <div>
+        <h2 class="h5 my-2">${title}</h2>
+        <div>
+          <span class="badge bg-primary me-2">${shareCount} shares</span>
+          <span class="badge bg-success">${commentCount} comments</span>
+        </div>
+      </div>
+      <span class="text-muted">→</span>
+    </a>`;
+  })
+  .join("");
 
-processData();
+writeFileSync(
+  "index.html",
+  generateHTML("Anand's LinkedIn Archive", `<div class="list-group">${indexHTML}</div>`, true),
+);
+
+// Generate RSS
+const rssItems = allPosts
+  .slice(0, 20)
+  .map((post) => {
+    const title = post.type === "share" ? "LinkedIn Share" : "LinkedIn Comment";
+    const content = post.type === "share" ? post.ShareCommentary : post.Message;
+    const link = post.type === "share" ? post.ShareLink : post.Link;
+    return `<item><title>${title}</title><link>${link}</link><description><![CDATA[${content?.replace(/\n/g, "<br>") || ""}]]></description><pubDate>${new Date(post.date).toUTCString()}</pubDate><guid>${link}</guid></item>`;
+  })
+  .join("");
+
+writeFileSync(
+  "feed.xml",
+  `<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>Anand's LinkedIn Archive</title><description>My LinkedIn posts and comments</description><link>.</link><lastBuildDate>${new Date().toUTCString()}</lastBuildDate>${rssItems}</channel></rss>`,
+);
+
+console.log(`Generated ${Object.keys(finalGroups).length} group pages and RSS feed`);
