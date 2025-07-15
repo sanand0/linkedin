@@ -1,6 +1,12 @@
 import { readFileSync, writeFileSync, existsSync } from "fs";
 import { parse } from "csv-parse/sync";
 
+const autolinkURLs = text =>
+  text?.replace(/(https?:\/\/[^\s<]+[^<.,:;"')\]\s])/g, url => `<a href="${url}" target="_blank">${url}</a>`) || "";
+
+const cleanContent = content =>
+  autolinkURLs(content?.replace(/\n/g, "<br>").trim());
+
 const parseCSV = (file) => {
   if (!existsSync(file)) return [];
 
@@ -85,7 +91,6 @@ Object.entries(finalGroups).forEach(([groupKey, posts]) => {
 
   const postsHTML = posts
     .map((post) => {
-      const cleanContent = (content) => content?.replace(/\n/g, "<br>").trim() || "";
       const isShare = post.type === "share";
       const link = isShare ? post.ShareLink : post.Link;
       const content = cleanContent(isShare ? post.ShareCommentary : post.Message);
