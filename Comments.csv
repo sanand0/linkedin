@@ -1,4 +1,23 @@
 Date,Link,Message
+2025-07-13 08:15:21,https://www.linkedin.com/feed/update/urn%3Ali%3Aactivity%3A7348931489259999233,Ayush Mandowara Haven't tried audio calls yet. I use ffmpeg to record video calls from my laptop. Nothing on the phone yet though. Do let me know your experiences once you get it working
+2025-07-13 08:04:08,https://www.linkedin.com/feed/update/urn%3Ali%3Aactivity%3A7348202933752053761,Rohan Sen wow! What was the prompt?
+2025-07-13 07:57:50,https://www.linkedin.com/feed/update/urn%3Ali%3Aactivity%3A7342748269569110020,Vijay Rangarajan (VJ) Interesting! How often do you run your AMAs? How do you socialize? How do you filter? How do you share the discussion? Any tips on the preparation or process? Who else do you know who does this well? Lots of questions - would love to learn from your experience!
+2025-06-27 09:08:27,https://www.linkedin.com/feed/update/urn%3Ali%3Aactivity%3A7344186464080941056,"Mohamed Jaffer Very little. I mostly stick to CloudFlare and use it for a few discussions, but this does look like a promising exploration."
+2025-06-27 09:07:35,https://www.linkedin.com/feed/update/urn%3Ali%3Aactivity%3A7344186464080941056,"Abhay Singh No, imports don't seem to be allowed, but I convert my chats to Markdown and integrate them locally.
+
+https://github.com/sanand0/chatgpt-to-markdown
+
+Not sure I understood what you meant by the replays going to the RL layer...."
+2025-06-27 09:05:49,https://www.linkedin.com/feed/update/urn%3Ali%3Aactivity%3A7344186464080941056,"Nishant Kashyap If you look at some of my older LinkedIn posts, you'll see lots of Calvin & Hobbes images, ChatGPT generated 🙂"
+2025-06-27 09:04:13,https://www.linkedin.com/feed/update/urn%3Ali%3Aactivity%3A7344186464080941056,"Srini Annamaraju Here's how I tagged it: https://sanand0.github.io/talks/2025-06-27-data-design-by-dialogue/#6
+
+Good point about the feedback loop. I have a custom instruction telling ChatGPT to \"Challenge my assumptions, ask probing questions, suggest better approaches, share contrarian perspectives, and engage rather than affirm.\""
+2025-06-25 06:12:39,https://www.linkedin.com/feed/update/urn%3Ali%3Aactivity%3A7343469241997717504,"Ravikumar Venkateswar Prompting as I walk, using text to speech."
+2025-06-22 06:14:24,https://www.linkedin.com/feed/update/urn%3Ali%3Aactivity%3A7340632732227538944,"Raghavendra Prabhu This might be related to the major password leak across Apple, Google, Meta etc. My daughter was searching for how to delete her Insta account after it was hacked"
+2025-06-22 06:08:13,https://www.linkedin.com/feed/update/urn%3Ali%3Aactivity%3A7342411013314551809,Shantanu Krishna That will depend on the blood test results this evening 🙂
+2025-06-17 09:50:39,https://www.linkedin.com/feed/update/urn%3Ali%3Aactivity%3A7340632732227538944,"Shanmathi Thangaraj Yes, it varies with time, location, and person. Rather than use it as a \"This is what a country searches for\", it's better to use it as \"Here's how countries are different in their searches\""
+2025-06-17 09:49:22,https://www.linkedin.com/feed/update/urn%3Ali%3Aactivity%3A7340632732227538944,"Yes, a bit, unless you run it in an incognito window"
+2025-06-14 13:20:03,https://www.linkedin.com/feed/update/urn%3Ali%3Aactivity%3A7339555196248760321,"What are your main ways of using Reclaim.ai, Nirant? And what parts of that do you find most valuable?"
 2025-06-10 08:35:23,https://www.linkedin.com/feed/update/urn%3Ali%3Aactivity%3A7338018316227162112,"Anand MS Interesting question. I added results for temp=0.7 at https://sanand0.github.io/llmevals/system-override/
 
 The results are different but not by much.
