@@ -2,6 +2,12 @@
 *.html
 feed.xml
 
+# Assets
+*.pdf
+*.jpe?g
+*.png
+*.webp
+
 # Node modules (if any)
 node_modules/
 

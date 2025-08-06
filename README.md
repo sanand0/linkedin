@@ -28,6 +28,21 @@ Open `index.html` in your browser. Subscribe to `feed.xml` for RSS updates.
 └── .github/workflows/  # GitHub Actions deployment
 ```
 
+Images and PDFs are released on GitHub releases at <https://github.com/sanand0/linkedin/releases/tag/main> created via:
+
+```bash
+gh release create main --title "Assets" --notes "Images, PDFs, and other LinkedIn post attachments"
+```
+
+Upload via:
+
+```bash
+# Upload single file
+gh release upload main $FILE
+# Upload and overwrite all
+gh release upload main --clobber *.pdf *.png *.webp *.jpe?g
+```
+
 ## Deployment
 
 This project includes a GitHub Actions workflow that automatically builds and deploys your archive to GitHub Pages whenever you update your CSV files.
